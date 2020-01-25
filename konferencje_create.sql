@@ -2,7 +2,7 @@
 -- Table: Client
 CREATE TABLE Client
 (
-    ClientID int identity (1,1),
+    ClientID int identity (0,1),
     Phone    varchar(15) NOT NULL,
     Email    varchar(60) NOT NULL,
     Address  varchar(50) NOT NULL,
@@ -22,28 +22,28 @@ CREATE TABLE Company
 -- Table: Conference
 CREATE TABLE Conference
 (
-    ConferenceID   int identity (1,1),
+    ConferenceID   int identity (0,1),
     ConferenceName varchar(30)   NOT NULL,
     discount       float(5)      NOT NULL,
-    Cancelled       bit default 0 NOT NULL,
+    Cancelled      bit default 0 NOT NULL,
     CONSTRAINT Conference_pk PRIMARY KEY (ConferenceID)
 );
 
 -- Table: Day
 CREATE TABLE Day
 (
-    DayID           int identity (1,1),
+    DayID           int identity (0,1),
     ConferenceID    int           NOT NULL,
     DayDate         date          NOT NULL,
     MaxParticipants int           NOT NULL,
-    Cancelled        bit default 0 NOT NULL,
+    Cancelled       bit default 0 NOT NULL,
     CONSTRAINT Day_pk PRIMARY KEY (DayID)
 );
 
 -- Table: Participant
 CREATE TABLE Participant
 (
-    ParticipantID           int identity (1,1),
+    ParticipantID           int identity (0,1),
     FirstName               varchar(20) NULL,
     LastName                varchar(20) NULL,
     ReservationID           int         NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE PaymentThresholds
 -- Table: Payments
 CREATE TABLE Payments
 (
-    PaymentID     int identity (1,1),
+    PaymentID     int identity (0,1),
     ReservationID int   NOT NULL,
     PaymentDate   date  NOT NULL,
     AmountPaid    money NOT NULL,
@@ -93,17 +93,17 @@ CREATE TABLE Payments
 -- Table: Reservation
 CREATE TABLE Reservation
 (
-    ReservationID   int identity (1,1),
+    ReservationID   int identity (0,1),
     ReservationDate date          NOT NULL,
     ClientID        int           NOT NULL,
-    Cancelled        bit default 0 NOT NULL,
+    Cancelled       bit default 0 NOT NULL,
     CONSTRAINT Reservation_pk PRIMARY KEY (ReservationID)
 );
 
 -- Table: ReservationForDay
 CREATE TABLE ReservationForDay
 (
-    ReservationID        int identity (1,1),
+    ReservationID        int           NOT NULL,
     DayID                int           NOT NULL,
     NumberOfParticipants int           NOT NULL,
     NumberOfStudents     int default 0 NOT NULL,
@@ -123,14 +123,14 @@ CREATE TABLE ReservationForWorkshop
 -- Table: Workshop
 CREATE TABLE Workshop
 (
-    WorkshopID      int identity (1,1),
+    WorkshopID      int identity (0,1),
     MaxParticipants int           NOT NULL,
     Price           money         NOT NULL,
     StartTime       time          NOT NULL,
-    Duration        time          NOT NULL,
+    Duration        int           NOT NULL,
     WorkshopName    varchar(50)   NOT NULL,
     DayID           int           NOT NULL,
-    Cancelled        bit default 0 NOT NULL,
+    Cancelled       bit default 0 NOT NULL,
     CONSTRAINT Workshop_pk PRIMARY KEY (WorkshopID)
 );
 

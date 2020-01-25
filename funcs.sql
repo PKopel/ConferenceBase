@@ -33,6 +33,7 @@ begin
     where RFD.DayID = @DayID
       and R.Cancelled <> 1
     group by Day.DayID, MaxParticipants
+alter table Company add constraint one_client unique (ClientID)
     return @FreePlaces
 end
 

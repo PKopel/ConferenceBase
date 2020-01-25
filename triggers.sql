@@ -92,13 +92,35 @@ end
 
 --odwoływanie dni odwołanej konferencji
 
-create trigger CancelDayOfCanceledConference
+create trigger CancelDaysOfCanceledConference
     on Conference
     after update
     as
-    begin
-        declare @ConferenceID int;
-        select @ConferenceID = ConferenceID from inserted;
-        update
-            set Canceled
-    end
+begin
+    if UPDATE(Cancelled)
+        begin
+            declare @ConferenceID int;
+            select @ConferenceID = ConferenceID from inserted;
+            update Day
+            set Cancelled = 1
+            where Day.ConferenceID = @ConferenceID
+        end
+end
+
+
+--odwoływanie warsztatów odwołanego dnia
+create trigger CancelWorkshopsOfCanceledDay
+    on Day
+    after UPDATE
+    AS
+begin
+    if UPDATE(Cancelled)
+        begin
+            declare @DayID int;
+            select @DayID = DayID from inserted;
+            update Workshop
+            set Cancelled = 1
+            where Workshop.DayID = @DayID
+        end
+end
+
