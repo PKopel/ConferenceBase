@@ -1,2 +1,2 @@
 # ConferenceBase
-DB Management system for company organizing conferences
+Data base for company organizing conferences. Written in MS SQL.
