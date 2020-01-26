@@ -1,4 +1,4 @@
---sprawdzenie czy dane uczestników rezerwacji są kompletne (działa)
+--check completeness of participants data
 
 create function CHECK_PARTICIPANTS_DATA(@ReservationID int)
     returns bit
@@ -20,7 +20,7 @@ begin
     return @Result
 end
 
---liczenie wolnych miejsc w dniach (załadowane)
+--count free places left on day
 
 create function DAY_FREE_PLACES(@DayID int)
     returns int
@@ -37,7 +37,7 @@ alter table Company add constraint one_client unique (ClientID)
     return @FreePlaces
 end
 
---liczenie wolnych miejsc w warsztatach (załadowane)
+--count free places left on workshop
 
 create function WORKSHOP_FREE_PLACES(@WorkshopID int)
     returns int
@@ -53,7 +53,7 @@ begin
     return @FreePlaces
 end
 
---liczenie opłaty (załadowane)
+--count price for reservation
 
 create function PRICE_FOR_RESERVATION(@ReservationID int)
     returns money
@@ -91,7 +91,7 @@ begin
     return @DayPrices + @WorkshopPrices
 end
 
---pierwszy dzień konferencji (załadowane)
+--get date of first day in a conference
 
 create function CONFERENCE_DATE(@ConferenceID int)
     returns date
@@ -105,7 +105,8 @@ begin
     return @ConferenceDate
 end
 
---liczenie sumy miejsc na warsztatach dla rezerwacji w danym dniu (załadowane)
+--sum number of places on workshops on given day belonging to given reservation
+
 create function SUM_RESERVATION_WORKSHOP_PARTICIPANTS(@ReservationID int, @DayID int)
     returns int
 begin
@@ -119,7 +120,7 @@ begin
     return @participants
 end
 
---wyciąganie dnia z warsztatu (załadowane)
+--get dayID from workshop
 
 create function WORKSHOP_DAY_ID(@WorkshopID int)
     returns int
@@ -130,3 +131,49 @@ begin
     where WorkshopID = @WorkshopID
     return @DayID
 end
+
+--list of participants of a day
+
+create function DAY_PARTICIPANTS_LIST(@DayID int)
+    returns table
+        as
+        return
+        select ConferenceName, DayDate, FirstName, LastName
+        from Conference
+                 inner join Day on Day.ConferenceID = Conference.ConferenceID
+                 inner join ParticipantOfDay pfd on pfd.DayID = Day.DayID
+                 inner join Participant on Participant.ParticipantID = pfd.ParticipantID
+                 inner join Reservation on Participant.ReservationID = Reservation.ReservationID
+        where Day.DayID = @DayID
+          and Reservation.Cancelled <> 1
+
+--list of participants of a workshop
+
+create function WORKSHOP_PARTICIPANTS_LIST(@WorkshopID int)
+    returns table
+        as
+        return
+        select WorkshopName, StartTime, FirstName, LastName
+        from Workshop
+                 inner join ParticipantOfWorkshop pfw on pfw.WorkshopID = Workshop.WorkshopID
+                 inner join Participant on Participant.ParticipantID = pfw.ParticipantID
+                 inner join Reservation on Participant.ReservationID = Reservation.ReservationID
+        where Workshop.WorkshopID = @WorkshopID
+          and Reservation.Cancelled <> 1
+
+--list of reservations made by given client
+
+create function RESERVATION_PRICES(@ClientID int)
+    returns table
+        as
+        return
+        select Reservation.ClientID,
+               Reservation.ReservationID,
+               u_kopel.dbo.PRICE_FOR_RESERVATION(Reservation.ReservationID) as Price,
+               SUM(AmountPaid)                                              as Paid
+        from Client
+                 inner join Reservation on Client.ClientID = Reservation.ClientID
+                 inner join Payments on Payments.ReservationID = Reservation.ReservationID
+        where Client.ClientID = @ClientID
+          and Reservation.Cancelled <> 1
+        group by Reservation.ReservationID, Reservation.ClientID

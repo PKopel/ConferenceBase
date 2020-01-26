@@ -13,7 +13,7 @@ CREATE TABLE Client
 CREATE TABLE Company
 (
     NIP         varchar(10) NOT NULL,
-    ClientID    int         NOT NULL,
+    ClientID    int         unique NOT NULL,
     CompanyName varchar(50) NOT NULL,
     Address     varchar(50) NOT NULL,
     CONSTRAINT Company_pk PRIMARY KEY (NIP)

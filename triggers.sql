@@ -1,4 +1,4 @@
---sprawdzenie czy liczba miesc w dniu i na warsztacie zgadza się dla rezerwacji (załadowany)
+--check if sum of numbers of participants in workshops is not higher than number of participants on day
 
 create trigger ReservationPlacesCheck
     on ReservationForWorkshop
@@ -14,66 +14,37 @@ begin
     if (@SumOfParticipants > (
         select NumberOfParticipants
         from ReservationForDay rfd
+                 inner join Reservation R on rfd.ReservationID = R.ReservationID
         where rfd.ReservationID = @ReservationID
-          and rfd.DayID = @WorkshopDayID)
+          and rfd.DayID = @WorkshopDayID
+          and R.Cancelled <> 1)
         )
         begin
             rollback
         end
 end;
 
---sprawdzenie czy liczba wolnych miejsc w dniu zgadza sie z nową rezerwacją (załadowany)
+--check if sum of numbers of participants on day is not higher than max number of participants on day
 
 create trigger NewReservationDayCheck
     on ReservationForDay
-    after insert
+    after insert, update
     as
 begin
     declare @DayID int;
     select @DayID = DayID from inserted;
     if (select MaxParticipants from Day where Day.DayID = @DayID)
         <
-       (select SUM(NumberOfParticipants) from ReservationForDay where DayID = @DayID group by DayID)
+       (select SUM(NumberOfParticipants)
+        from ReservationForDay rfd
+                 inner join Reservation R on rfd.ReservationID = R.ReservationID
+        where DayID = @DayID
+          and R.Cancelled <> 1
+        group by DayID)
         begin
             rollback
         end
 end
-
---sprawdzenie czy liczba wolnych miejsc na warsztaci zgadza się z nową rezerwacją (załadowany)
-
-create trigger NewReservationWorkshopCheck
-    on ReservationForWorkshop
-    after insert
-    as
-begin
-    declare @WorkshopID int;
-    select @WorkshopID = WorkshopID from inserted;
-    if (select MaxParticipants from Workshop where Workshop.WorkshopID = @WorkshopID)
-        <
-       (select SUM(NumberOfParticipants) from ReservationForWorkshop where WorkshopID = @WorkshopID group by WorkshopID)
-        begin
-            rollback
-        end
-end
-
---sprawdzenie czy liczba miejsc zgadza sie po zmianie ilości miejsc na warsztat (załadowany)
-
-create trigger NumberOfPlacesWorkshopCheck
-    on Workshop
-    after update
-    as
-begin
-    declare @WorkshopID int;
-    select @WorkshopID = WorkshopID from inserted;
-    if (select MaxParticipants from Workshop where Workshop.WorkshopID = @WorkshopID)
-        <
-       (select SUM(NumberOfParticipants) from ReservationForWorkshop where WorkshopID = @WorkshopID group by WorkshopID)
-        begin
-            rollback
-        end
-end
-
---sprawdzenie czy liczba miejsc zgadza sie po zmianie ilości miejsc na dzień (załadowany)
 
 create trigger NumberOfPlacesDayCheck
     on Day
@@ -84,13 +55,61 @@ begin
     select @DayID = DayID from inserted;
     if (select MaxParticipants from Day where DayID = @DayID)
         <
-       (select SUM(NumberOfParticipants) from ReservationForDay where DayID = @DayID group by DayID)
+       (select SUM(NumberOfParticipants)
+        from ReservationForDay rfd
+                 inner join Reservation R on rfd.ReservationID = R.ReservationID
+        where DayID = @DayID
+          and R.Cancelled <> 1
+        group by DayID)
         begin
             rollback
         end
 end
 
---odwoływanie dni odwołanej konferencji
+
+--check if sum of numbers of participants in workshop is not higher than max number of participants in workshop
+
+create trigger NewReservationWorkshopCheck
+    on ReservationForWorkshop
+    after insert, update
+    as
+begin
+    declare @WorkshopID int;
+    select @WorkshopID = WorkshopID from inserted;
+    if (select MaxParticipants from Workshop where Workshop.WorkshopID = @WorkshopID)
+        <
+       (select SUM(NumberOfParticipants)
+        from ReservationForWorkshop rfw
+                 inner join Reservation R on rfw.ReservationID = R.ReservationID
+        where WorkshopID = @WorkshopID
+          and R.Cancelled <> 1
+        group by WorkshopID)
+        begin
+            rollback
+        end
+end
+
+create trigger NumberOfPlacesWorkshopCheck
+    on Workshop
+    after update
+    as
+begin
+    declare @WorkshopID int;
+    select @WorkshopID = WorkshopID from inserted;
+    if (select MaxParticipants from Workshop where Workshop.WorkshopID = @WorkshopID)
+        <
+       (select SUM(NumberOfParticipants)
+        from ReservationForWorkshop rfw
+                 inner join Reservation R on rfw.ReservationID = R.ReservationID
+        where WorkshopID = @WorkshopID
+          and R.Cancelled <> 1
+        group by WorkshopID)
+        begin
+            rollback
+        end
+end
+
+--cancel days of cancelled conference
 
 create trigger CancelDaysOfCanceledConference
     on Conference
@@ -108,7 +127,7 @@ begin
 end
 
 
---odwoływanie warsztatów odwołanego dnia
+--cancel workshops on cancelled day
 create trigger CancelWorkshopsOfCanceledDay
     on Day
     after UPDATE
